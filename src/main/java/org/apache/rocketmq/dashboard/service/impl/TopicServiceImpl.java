@@ -126,7 +126,7 @@ public class TopicServiceImpl extends AbstractCommonService implements TopicServ
         BeanUtils.copyProperties(topicCreateOrUpdateRequest, topicConfig);
 
         String messageTypeKey = "+" + TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName();
-        topicConfig.getAttributes().put(messageTypeKey, topicConfig.getTopicName());
+        topicConfig.getAttributes().put(messageTypeKey, topicCreateOrUpdateRequest.getTopicMessageType());
 
         try {
             ClusterInfo clusterInfo = mqAdminExt.examineBrokerClusterInfo();
