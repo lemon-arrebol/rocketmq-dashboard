@@ -31,6 +31,8 @@ public class TopicConfigInfo {
     private int perm;
     private boolean order;
 
+    private String topicMessageType;
+
     public List<String> getClusterNameList() {
         return clusterNameList;
     }
@@ -89,6 +91,14 @@ public class TopicConfigInfo {
 
     public void setOrder(boolean order) {
         this.order = order;
+    }
+
+    public String getTopicMessageType() {
+        return topicMessageType;
+    }
+
+    public void setTopicMessageType(String topicMessageType) {
+        this.topicMessageType = topicMessageType;
     }
 
     @Override

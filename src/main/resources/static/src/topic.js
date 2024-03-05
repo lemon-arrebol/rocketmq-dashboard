@@ -356,7 +356,13 @@ module.controller('topicController', ['$scope', 'ngDialog', '$http', 'Notificati
                         allClusterNameList: Object.keys(resp.data.clusterInfo.clusterAddrTable),
                         allBrokerNameList: Object.keys(resp.data.brokerServer),
                         bIsUpdate: bIsUpdate,
-                        writeOperationEnabled: $scope.writeOperationEnabled
+                        writeOperationEnabled: $scope.writeOperationEnabled,
+                        topicMessageTypes: [
+                            { name: 'TOPIC_MESSAGE_TYPE_NORMAL', value: 'NORMAL'},
+                            { name: 'TOPIC_MESSAGE_TYPE_FIFO', value: 'FIFO'},
+                            { name: 'TOPIC_MESSAGE_TYPE_DELAY', value: 'DELAY'},
+                            { name: 'TOPIC_MESSAGE_TYPE_TRANSACTION', value: 'TRANSACTION'}
+                        ]
                     }
                 });
             }

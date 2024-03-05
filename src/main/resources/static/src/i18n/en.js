@@ -123,5 +123,10 @@ var en = {
     "GROUP_PERM":"Group Permission",
     "SYNCHRONIZE":"Synchronize Data",
     "SHOW":"Show",
-    "HIDE":"Hide"
+    "HIDE":"Hide",
+    "TopicMessageType":"Topic Message Type",
+    "TOPIC_MESSAGE_TYPE_NORMAL":"NORMAL",
+    "TOPIC_MESSAGE_TYPE_FIFO":"FIFO",
+    "TOPIC_MESSAGE_TYPE_DELAY":"DELAY",
+    "TOPIC_MESSAGE_TYPE_TRANSACTION":"TRANSACTION"
 }

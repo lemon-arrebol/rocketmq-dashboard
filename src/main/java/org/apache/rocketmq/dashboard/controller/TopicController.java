@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.dashboard.controller;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.dashboard.permisssion.Permission;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.dashboard.model.request.SendTopicMessageRequest;
@@ -72,9 +74,21 @@ public class TopicController {
     @RequestMapping(value = "/createOrUpdate.do", method = { RequestMethod.POST})
     @ResponseBody
     public Object topicCreateOrUpdateRequest(@RequestBody TopicConfigInfo topicCreateOrUpdateRequest) {
+        logger.info("op=look topicCreateOrUpdateRequest={}", JsonUtil.obj2String(topicCreateOrUpdateRequest));
+
         Preconditions.checkArgument(CollectionUtils.isNotEmpty(topicCreateOrUpdateRequest.getBrokerNameList()) || CollectionUtils.isNotEmpty(topicCreateOrUpdateRequest.getClusterNameList()),
             "clusterName or brokerName can not be all blank");
-        logger.info("op=look topicCreateOrUpdateRequest={}", JsonUtil.obj2String(topicCreateOrUpdateRequest));
+        Preconditions.checkArgument(StringUtils.isNotBlank(topicCreateOrUpdateRequest.getTopicMessageType()),
+                "topicMessageType can not be all blank");
+
+        // topic消息类型校验
+        String messageType = topicCreateOrUpdateRequest.getTopicMessageType().toUpperCase();
+        TopicMessageType topicMessageType = TopicMessageType.valueOf(messageType);
+        Preconditions.checkArgument((topicMessageType != null && topicMessageType != TopicMessageType.UNSPECIFIED),
+                "topicMessageType can only be one of NORMAL、FIFO、DELAY、TRANSACTION");
+
+        topicCreateOrUpdateRequest.setTopicMessageType(messageType);
+
         topicService.createOrUpdate(topicCreateOrUpdateRequest);
         return true;
     }

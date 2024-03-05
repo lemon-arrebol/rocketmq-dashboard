@@ -29,6 +29,7 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.trace.TraceContext;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.Message;
@@ -123,6 +124,10 @@ public class TopicServiceImpl extends AbstractCommonService implements TopicServ
     public void createOrUpdate(TopicConfigInfo topicCreateOrUpdateRequest) {
         TopicConfig topicConfig = new TopicConfig();
         BeanUtils.copyProperties(topicCreateOrUpdateRequest, topicConfig);
+
+        String messageTypeKey = "+" + TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName();
+        topicConfig.getAttributes().put(messageTypeKey, topicConfig.getTopicName());
+
         try {
             ClusterInfo clusterInfo = mqAdminExt.examineBrokerClusterInfo();
             for (String brokerName : changeToBrokerNameSet(clusterInfo.getClusterAddrTable(),
