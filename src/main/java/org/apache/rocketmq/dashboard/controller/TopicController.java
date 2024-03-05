@@ -78,6 +78,10 @@ public class TopicController {
 
         Preconditions.checkArgument(CollectionUtils.isNotEmpty(topicCreateOrUpdateRequest.getBrokerNameList()) || CollectionUtils.isNotEmpty(topicCreateOrUpdateRequest.getClusterNameList()),
             "clusterName or brokerName can not be all blank");
+
+        Preconditions.checkArgument(StringUtils.isNotBlank(topicCreateOrUpdateRequest.getTopicName()),
+                "topicName can not be all blank");
+
         Preconditions.checkArgument(StringUtils.isNotBlank(topicCreateOrUpdateRequest.getTopicMessageType()),
                 "topicMessageType can not be all blank");
 

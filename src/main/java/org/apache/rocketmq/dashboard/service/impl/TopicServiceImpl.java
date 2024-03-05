@@ -21,6 +21,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
@@ -31,6 +32,7 @@ import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
@@ -161,6 +163,15 @@ public class TopicServiceImpl extends AbstractCommonService implements TopicServ
             TopicConfig topicConfig = examineTopicConfig(topic, brokerData.getBrokerName());
             BeanUtils.copyProperties(topicConfig, topicConfigInfo);
             topicConfigInfo.setBrokerNameList(Lists.newArrayList(brokerData.getBrokerName()));
+
+            if (MapUtils.isNotEmpty(topicConfig.getAttributes())) {
+                String messageTypeKey = TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName();
+                String topicMessageType = topicConfig.getAttributes().getOrDefault(messageTypeKey, TopicMessageType.NORMAL.getValue());
+                topicConfigInfo.setTopicMessageType(topicMessageType);
+            } else {
+                topicConfigInfo.setTopicMessageType(TopicMessageType.NORMAL.getValue());
+            }
+
             topicConfigInfoList.add(topicConfigInfo);
         }
         return topicConfigInfoList;

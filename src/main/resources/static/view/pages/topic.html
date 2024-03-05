@@ -217,7 +217,7 @@
                 <label class="control-label col-sm-2">{{'TopicMessageType'|translate}}:</label>
                 <div class="col-sm-10">
                     <label ng-repeat="messageType in ngDialogData.topicMessageTypes">
-                        <input id="{{messageType.name}}" name="{{messageType.name}}" type="radio" ng-model="item.topicMessageType" ng-value="messageType.value"/>
+                        <input id="{{messageType.name}}" name="{{messageType.name}}" type="radio" ng-disabled="ngDialogData.bIsUpdate" ng-model="item.topicMessageType" ng-value="messageType.value"/>
                         <label for="{{messageType.name}}" class="control-label">{{messageType.name | translate}}</label>
                     </label>
                 </div>
