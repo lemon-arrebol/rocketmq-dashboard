@@ -36,6 +36,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.dashboard.model.request.AclRequest;
@@ -52,29 +53,18 @@ import org.springframework.stereotype.Service;
 public class AclServiceImpl extends AbstractCommonService implements AclService {
 
     @Override
-    public AclConfig getAclConfig(boolean excludeSecretKey) {
+    public ClusterAclVersionInfo getAclVersionConfig() {
         try {
             Optional<String> addr = getMasterSet().stream().findFirst();
             if (addr.isPresent()) {
-                if (!excludeSecretKey) {
-                    return mqAdminExt.examineBrokerClusterAclConfig(addr.get());
-                } else {
-                    AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr.get());
-                    if (CollectionUtils.isNotEmpty(aclConfig.getPlainAccessConfigs())) {
-                        aclConfig.getPlainAccessConfigs().forEach(pac -> pac.setSecretKey(null));
-                    }
-                    return aclConfig;
-                }
+                return mqAdminExt.examineBrokerClusterAclVersionInfo(addr.get());
             }
         } catch (Exception e) {
             log.error("getAclConfig error.", e);
             Throwables.throwIfUnchecked(e);
             throw new RuntimeException(e);
         }
-        AclConfig aclConfig = new AclConfig();
-        aclConfig.setGlobalWhiteAddrs(Collections.emptyList());
-        aclConfig.setPlainAccessConfigs(Collections.emptyList());
-        return aclConfig;
+        return new ClusterAclVersionInfo();
     }
 
     @Override
@@ -85,16 +75,19 @@ public class AclServiceImpl extends AbstractCommonService implements AclService 
             if (masterSet.isEmpty()) {
                 throw new IllegalStateException("broker addr list is empty");
             }
+            // 5.2.0 no method mqAdminExt.examineBrokerClusterAclConfig，accessKey 要具有唯一性
+            // org.apache.rocketmq.broker.processor.AdminBrokerProcessor.updateAndCreateAccessConfig 处理创建或更新 PlainAccessConfig
+            // PlainAccessConfig 无需要指定全部值，会进行覆盖处理
             // check to see if account is exists
-            for (String addr : masterSet) {
-                AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
-                List<PlainAccessConfig> plainAccessConfigs = aclConfig.getPlainAccessConfigs();
-                for (PlainAccessConfig pac : plainAccessConfigs) {
-                    if (pac.getAccessKey().equals(config.getAccessKey())) {
-                        throw new IllegalArgumentException(String.format("broker: %s, exist accessKey: %s", addr, config.getAccessKey()));
-                    }
-                }
-            }
+//            for (String addr : masterSet) {
+//                AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
+//                List<PlainAccessConfig> plainAccessConfigs = aclConfig.getPlainAccessConfigs();
+//                for (PlainAccessConfig pac : plainAccessConfigs) {
+//                    if (pac.getAccessKey().equals(config.getAccessKey())) {
+//                        throw new IllegalArgumentException(String.format("broker: %s, exist accessKey: %s", addr, config.getAccessKey()));
+//                    }
+//                }
+//            }
 
             // all broker
             for (String addr : getBrokerAddrs()) {
@@ -112,9 +105,10 @@ public class AclServiceImpl extends AbstractCommonService implements AclService 
         try {
             for (String addr : getBrokerAddrs()) {
                 log.info("Start to delete acl [{}] from broker [{}]", config.getAccessKey(), addr);
-                if (isExistAccessKey(config.getAccessKey(), addr)) {
-                    mqAdminExt.deletePlainAccessConfig(addr, config.getAccessKey());
-                }
+//                if (isExistAccessKey(config.getAccessKey(), addr)) {
+//                    mqAdminExt.deletePlainAccessConfig(addr, config.getAccessKey());
+//                }
+                mqAdminExt.deletePlainAccessConfig(addr, config.getAccessKey());
                 log.info("Delete acl [{}] from broker [{}] complete", config.getAccessKey(), addr);
             }
         } catch (Exception e) {
@@ -127,21 +121,24 @@ public class AclServiceImpl extends AbstractCommonService implements AclService 
     public void updateAclConfig(PlainAccessConfig config) {
         try {
             for (String addr : getBrokerAddrs()) {
-                AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
-                if (aclConfig.getPlainAccessConfigs() != null) {
-                    PlainAccessConfig remoteConfig = null;
-                    for (PlainAccessConfig pac : aclConfig.getPlainAccessConfigs()) {
-                        if (pac.getAccessKey().equals(config.getAccessKey())) {
-                            remoteConfig = pac;
-                            break;
-                        }
-                    }
-                    if (remoteConfig != null) {
-                        remoteConfig.setSecretKey(config.getSecretKey());
-                        remoteConfig.setAdmin(config.isAdmin());
-                        config = remoteConfig;
-                    }
-                }
+                // 5.2.0 no method mqAdminExt.examineBrokerClusterAclConfig，accessKey 要具有唯一性
+                // org.apache.rocketmq.broker.processor.AdminBrokerProcessor.updateAndCreateAccessConfig 处理创建或更新 PlainAccessConfig
+                // PlainAccessConfig 无需要指定全部值，会进行覆盖处理
+//                AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
+//                if (aclConfig.getPlainAccessConfigs() != null) {
+//                    PlainAccessConfig remoteConfig = null;
+//                    for (PlainAccessConfig pac : aclConfig.getPlainAccessConfigs()) {
+//                        if (pac.getAccessKey().equals(config.getAccessKey())) {
+//                            remoteConfig = pac;
+//                            break;
+//                        }
+//                    }
+//                    if (remoteConfig != null) {
+//                        remoteConfig.setSecretKey(config.getSecretKey());
+//                        remoteConfig.setAdmin(config.isAdmin());
+//                        config = remoteConfig;
+//                    }
+//                }
                 mqAdminExt.createAndUpdatePlainAccessConfig(addr, config);
             }
         } catch (Exception e) {
@@ -155,27 +152,32 @@ public class AclServiceImpl extends AbstractCommonService implements AclService 
         try {
             PlainAccessConfig addConfig = request.getConfig();
             for (String addr : getBrokerAddrs()) {
-                AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
-                PlainAccessConfig remoteConfig = null;
-                if (aclConfig.getPlainAccessConfigs() != null) {
-                    for (PlainAccessConfig config : aclConfig.getPlainAccessConfigs()) {
-                        if (config.getAccessKey().equals(addConfig.getAccessKey())) {
-                            remoteConfig = config;
-                            break;
-                        }
-                    }
-                }
-                if (remoteConfig == null) {
-                    // Maybe the broker no acl config of the access key, therefore add it;
-                    mqAdminExt.createAndUpdatePlainAccessConfig(addr, addConfig);
-                } else {
-                    if (remoteConfig.getTopicPerms() == null) {
-                        remoteConfig.setTopicPerms(new ArrayList<>());
-                    }
-                    removeExist(remoteConfig.getTopicPerms(), request.getTopicPerm().split("=")[0]);
-                    remoteConfig.getTopicPerms().add(request.getTopicPerm());
-                    mqAdminExt.createAndUpdatePlainAccessConfig(addr, remoteConfig);
-                }
+                // 5.2.0 no method mqAdminExt.examineBrokerClusterAclConfig，accessKey 要具有唯一性
+                // org.apache.rocketmq.broker.processor.AdminBrokerProcessor.updateAndCreateAccessConfig 处理创建或更新 PlainAccessConfig
+                // PlainAccessConfig 无需要指定全部值，会进行覆盖处理
+//                AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
+//                PlainAccessConfig remoteConfig = null;
+//                if (aclConfig.getPlainAccessConfigs() != null) {
+//                    for (PlainAccessConfig config : aclConfig.getPlainAccessConfigs()) {
+//                        if (config.getAccessKey().equals(addConfig.getAccessKey())) {
+//                            remoteConfig = config;
+//                            break;
+//                        }
+//                    }
+//                }
+//                if (remoteConfig == null) {
+//                    // Maybe the broker no acl config of the access key, therefore add it;
+//                    mqAdminExt.createAndUpdatePlainAccessConfig(addr, addConfig);
+//                } else {
+//                    if (remoteConfig.getTopicPerms() == null) {
+//                        remoteConfig.setTopicPerms(new ArrayList<>());
+//                    }
+//                    removeExist(remoteConfig.getTopicPerms(), request.getTopicPerm().split("=")[0]);
+//                    remoteConfig.getTopicPerms().add(request.getTopicPerm());
+//                    mqAdminExt.createAndUpdatePlainAccessConfig(addr, remoteConfig);
+//                }
+
+                mqAdminExt.createAndUpdatePlainAccessConfig(addr, addConfig);
             }
         } catch (Exception e) {
             Throwables.throwIfUnchecked(e);
@@ -188,27 +190,32 @@ public class AclServiceImpl extends AbstractCommonService implements AclService 
         try {
             PlainAccessConfig addConfig = request.getConfig();
             for (String addr : getBrokerAddrs()) {
-                AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
-                PlainAccessConfig remoteConfig = null;
-                if (aclConfig.getPlainAccessConfigs() != null) {
-                    for (PlainAccessConfig config : aclConfig.getPlainAccessConfigs()) {
-                        if (config.getAccessKey().equals(addConfig.getAccessKey())) {
-                            remoteConfig = config;
-                            break;
-                        }
-                    }
-                }
-                if (remoteConfig == null) {
-                    // May be the broker no acl config of the access key, therefore add it;
-                    mqAdminExt.createAndUpdatePlainAccessConfig(addr, addConfig);
-                } else {
-                    if (remoteConfig.getGroupPerms() == null) {
-                        remoteConfig.setGroupPerms(new ArrayList<>());
-                    }
-                    removeExist(remoteConfig.getGroupPerms(), request.getGroupPerm().split("=")[0]);
-                    remoteConfig.getGroupPerms().add(request.getGroupPerm());
-                    mqAdminExt.createAndUpdatePlainAccessConfig(addr, remoteConfig);
-                }
+                // 5.2.0 no method mqAdminExt.examineBrokerClusterAclConfig，accessKey 要具有唯一性
+                // org.apache.rocketmq.broker.processor.AdminBrokerProcessor.updateAndCreateAccessConfig 处理创建或更新 PlainAccessConfig
+                // PlainAccessConfig 无需要指定全部值，会进行覆盖处理
+//                AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
+//                PlainAccessConfig remoteConfig = null;
+//                if (aclConfig.getPlainAccessConfigs() != null) {
+//                    for (PlainAccessConfig config : aclConfig.getPlainAccessConfigs()) {
+//                        if (config.getAccessKey().equals(addConfig.getAccessKey())) {
+//                            remoteConfig = config;
+//                            break;
+//                        }
+//                    }
+//                }
+//                if (remoteConfig == null) {
+//                    // May be the broker no acl config of the access key, therefore add it;
+//                    mqAdminExt.createAndUpdatePlainAccessConfig(addr, addConfig);
+//                } else {
+//                    if (remoteConfig.getGroupPerms() == null) {
+//                        remoteConfig.setGroupPerms(new ArrayList<>());
+//                    }
+//                    removeExist(remoteConfig.getGroupPerms(), request.getGroupPerm().split("=")[0]);
+//                    remoteConfig.getGroupPerms().add(request.getGroupPerm());
+//                    mqAdminExt.createAndUpdatePlainAccessConfig(addr, remoteConfig);
+//                }
+
+                mqAdminExt.createAndUpdatePlainAccessConfig(addr, addConfig);
             }
         } catch (Exception e) {
             Throwables.throwIfUnchecked(e);
@@ -231,28 +238,33 @@ public class AclServiceImpl extends AbstractCommonService implements AclService 
             }
 
             for (String addr : getBrokerAddrs()) {
-                AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
-                PlainAccessConfig remoteConfig = null;
-                if (aclConfig.getPlainAccessConfigs() != null) {
-                    for (PlainAccessConfig config : aclConfig.getPlainAccessConfigs()) {
-                        if (config.getAccessKey().equals(deleteConfig.getAccessKey())) {
-                            remoteConfig = config;
-                            break;
-                        }
-                    }
-                }
-                if (remoteConfig == null) {
-                    // Maybe the broker no acl config of the access key, therefore add it;
-                    mqAdminExt.createAndUpdatePlainAccessConfig(addr, deleteConfig);
-                } else {
-                    if (remoteConfig.getTopicPerms() != null && topic != null) {
-                        removeExist(remoteConfig.getTopicPerms(), topic);
-                    }
-                    if (remoteConfig.getGroupPerms() != null && group != null) {
-                        removeExist(remoteConfig.getGroupPerms(), group);
-                    }
-                    mqAdminExt.createAndUpdatePlainAccessConfig(addr, remoteConfig);
-                }
+                // 5.2.0 no method mqAdminExt.examineBrokerClusterAclConfig，accessKey 要具有唯一性
+                // org.apache.rocketmq.broker.processor.AdminBrokerProcessor.updateAndCreateAccessConfig 处理创建或更新 PlainAccessConfig
+                // PlainAccessConfig 无需要指定全部值，会进行覆盖处理
+//                AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
+//                PlainAccessConfig remoteConfig = null;
+//                if (aclConfig.getPlainAccessConfigs() != null) {
+//                    for (PlainAccessConfig config : aclConfig.getPlainAccessConfigs()) {
+//                        if (config.getAccessKey().equals(deleteConfig.getAccessKey())) {
+//                            remoteConfig = config;
+//                            break;
+//                        }
+//                    }
+//                }
+//                if (remoteConfig == null) {
+//                    // Maybe the broker no acl config of the access key, therefore add it;
+//                    mqAdminExt.createAndUpdatePlainAccessConfig(addr, deleteConfig);
+//                } else {
+//                    if (remoteConfig.getTopicPerms() != null && topic != null) {
+//                        removeExist(remoteConfig.getTopicPerms(), topic);
+//                    }
+//                    if (remoteConfig.getGroupPerms() != null && group != null) {
+//                        removeExist(remoteConfig.getGroupPerms(), group);
+//                    }
+//                    mqAdminExt.createAndUpdatePlainAccessConfig(addr, remoteConfig);
+//                }
+
+                mqAdminExt.createAndUpdatePlainAccessConfig(addr, deleteConfig);
             }
         } catch (Exception e) {
             Throwables.throwIfUnchecked(e);
@@ -280,13 +292,15 @@ public class AclServiceImpl extends AbstractCommonService implements AclService 
         }
         try {
             for (String addr : getBrokerAddrs()) {
-                AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
-                if (aclConfig.getGlobalWhiteAddrs() != null) {
-                    aclConfig.setGlobalWhiteAddrs(Stream.of(whiteList, aclConfig.getGlobalWhiteAddrs()).flatMap(Collection::stream).distinct().collect(Collectors.toList()));
-                } else {
-                    aclConfig.setGlobalWhiteAddrs(whiteList);
-                }
-                mqAdminExt.updateGlobalWhiteAddrConfig(addr, StringUtils.join(aclConfig.getGlobalWhiteAddrs(), ","));
+                // 5.2.0 no method mqAdminExt.examineBrokerClusterAclConfig，accessKey 要具有唯一性
+                // org.apache.rocketmq.broker.processor.AdminBrokerProcessor.updateAndCreateAccessConfig 处理创建或更新 PlainAccessConfig
+//                AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
+//                if (aclConfig.getGlobalWhiteAddrs() != null) {
+//                    aclConfig.setGlobalWhiteAddrs(Stream.of(whiteList, aclConfig.getGlobalWhiteAddrs()).flatMap(Collection::stream).distinct().collect(Collectors.toList()));
+//                } else {
+//                    aclConfig.setGlobalWhiteAddrs(whiteList);
+//                }
+                mqAdminExt.updateGlobalWhiteAddrConfig(addr, StringUtils.join(whiteList, ","));
             }
         } catch (Exception e) {
             Throwables.throwIfUnchecked(e);
@@ -294,16 +308,23 @@ public class AclServiceImpl extends AbstractCommonService implements AclService 
         }
     }
 
+    /**
+     * set globalWhiteRemoteAddress list, eg: 10.10.103.*,192.168.0.*, exclude addresses to be deleted
+     * deleteAddr
+     * @param deleteAddr
+     */
     @Override
     public void deleteWhiteAddr(String deleteAddr) {
         try {
             for (String addr : getBrokerAddrs()) {
-                AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
-                if (aclConfig.getGlobalWhiteAddrs() == null || aclConfig.getGlobalWhiteAddrs().isEmpty()) {
-                    continue;
-                }
-                aclConfig.getGlobalWhiteAddrs().remove(deleteAddr);
-                mqAdminExt.updateGlobalWhiteAddrConfig(addr, StringUtils.join(aclConfig.getGlobalWhiteAddrs(), ","));
+                // 5.2.0 no method mqAdminExt.examineBrokerClusterAclConfig，accessKey 要具有唯一性
+                // org.apache.rocketmq.broker.processor.AdminBrokerProcessor.updateAndCreateAccessConfig 处理创建或更新 PlainAccessConfig
+//                AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
+//                if (aclConfig.getGlobalWhiteAddrs() == null || aclConfig.getGlobalWhiteAddrs().isEmpty()) {
+//                    continue;
+//                }
+//                aclConfig.getGlobalWhiteAddrs().remove(deleteAddr);
+                mqAdminExt.updateGlobalWhiteAddrConfig(addr, deleteAddr);
             }
         } catch (Exception e) {
             Throwables.throwIfUnchecked(e);
@@ -339,16 +360,18 @@ public class AclServiceImpl extends AbstractCommonService implements AclService 
 
     private boolean isExistAccessKey(String accessKey,
         String addr) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
-        AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
-        List<PlainAccessConfig> plainAccessConfigs = aclConfig.getPlainAccessConfigs();
-        if (plainAccessConfigs == null || plainAccessConfigs.isEmpty()) {
-            return false;
-        }
-        for (PlainAccessConfig config : plainAccessConfigs) {
-            if (accessKey.equals(config.getAccessKey())) {
-                return true;
-            }
-        }
+        // 5.2.0 no method mqAdminExt.examineBrokerClusterAclConfig，accessKey 要具有唯一性
+        // org.apache.rocketmq.broker.processor.AdminBrokerProcessor.updateAndCreateAccessConfig 处理创建或更新 PlainAccessConfig
+//        AclConfig aclConfig = mqAdminExt.examineBrokerClusterAclConfig(addr);
+//        List<PlainAccessConfig> plainAccessConfigs = aclConfig.getPlainAccessConfigs();
+//        if (plainAccessConfigs == null || plainAccessConfigs.isEmpty()) {
+//            return false;
+//        }
+//        for (PlainAccessConfig config : plainAccessConfigs) {
+//            if (accessKey.equals(config.getAccessKey())) {
+//                return true;
+//            }
+//        }
         return false;
     }
 

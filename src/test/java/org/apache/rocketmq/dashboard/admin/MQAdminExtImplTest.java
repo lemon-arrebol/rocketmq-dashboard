@@ -177,8 +177,9 @@ public class MQAdminExtImplTest {
 
     @Test
     public void testExamineBrokerClusterAclConfig() throws Exception {
-        assertNotNull(mqAdminExtImpl);
-        assertNull(mqAdminExtImpl.examineBrokerClusterAclConfig(brokerAddr));
+        // 5.2.0 no method mqAdminExt.examineBrokerClusterAclConfig
+//        assertNotNull(mqAdminExtImpl);
+//        assertNull(mqAdminExtImpl.examineBrokerClusterAclConfig(brokerAddr));
     }
 
     @Test

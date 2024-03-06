@@ -27,6 +27,7 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQAdminImpl;
 import org.apache.rocketmq.common.AclConfig;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
@@ -38,6 +39,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
@@ -127,11 +129,11 @@ public class MQAdminExtImpl implements MQAdminExt {
         return null;
     }
 
-    @Override
-    public AclConfig examineBrokerClusterAclConfig(
-        String addr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return MQAdminInstance.threadLocalMQAdminExt().examineBrokerClusterAclConfig(addr);
-    }
+//    @Override
+//    public AclConfig examineBrokerClusterAclConfig(
+//        String addr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+//        return MQAdminInstance.threadLocalMQAdminExt().examineBrokerClusterAclConfig(addr);
+//    }
 
     @Override
     public void createAndUpdateSubscriptionGroupConfig(String addr, SubscriptionGroupConfig config)
@@ -825,9 +827,16 @@ public class MQAdminExtImpl implements MQAdminExt {
         throw new UnsupportedOperationException("Unimplemented method 'updateControllerConfig'");
     }
 
+//    @Override
+//    public ElectMasterResponseHeader electMaster(String controllerAddr, String clusterName, String brokerName,
+//            String brokerAddr) throws RemotingException, InterruptedException, MQBrokerException {
+//        // TODO Auto-generated method stub
+//        throw new UnsupportedOperationException("Unimplemented method 'electMaster'");
+//    }
+
     @Override
-    public ElectMasterResponseHeader electMaster(String controllerAddr, String clusterName, String brokerName,
-            String brokerAddr) throws RemotingException, InterruptedException, MQBrokerException {
+    public Pair<ElectMasterResponseHeader, BrokerMemberGroup> electMaster(String controllerAddr, String clusterName, String brokerName,
+            Long brokerId) throws RemotingException, InterruptedException, MQBrokerException {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'electMaster'");
     }
@@ -838,5 +847,33 @@ public class MQAdminExtImpl implements MQAdminExt {
             throws RemotingException, InterruptedException, MQBrokerException {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'cleanControllerBrokerData'");
+    }
+
+    @Override
+    public void updateColdDataFlowCtrGroupConfig(String s, Properties properties)
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'updateColdDataFlowCtrGroupConfig'");
+    }
+
+    @Override
+    public void removeColdDataFlowCtrGroupConfig(String s, String s1)
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'removeColdDataFlowCtrGroupConfig'");
+    }
+
+    @Override
+    public String getColdDataFlowCtrInfo(String s)
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getColdDataFlowCtrInfo'");
+    }
+
+    @Override
+    public String setCommitLogReadAheadMode(String s, String s1)
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'setCommitLogReadAheadMode'");
     }
 }

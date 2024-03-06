@@ -20,10 +20,11 @@ import java.util.List;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.dashboard.model.request.AclRequest;
+import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 
 public interface AclService {
 
-    AclConfig getAclConfig(boolean excludeSecretKey);
+    ClusterAclVersionInfo getAclVersionConfig();
 
     void addAclConfig(PlainAccessConfig config);
 

@@ -32,6 +32,7 @@ import org.apache.rocketmq.dashboard.permisssion.Permission;
 import org.apache.rocketmq.dashboard.service.AclService;
 import org.apache.rocketmq.dashboard.support.JsonResult;
 import org.apache.rocketmq.dashboard.util.WebUtil;
+import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -57,13 +58,15 @@ public class AclController {
     }
 
     @GetMapping("/config.query")
-    public AclConfig getAclConfig(HttpServletRequest request) {
-        if (!configure.isLoginRequired()) {
-            return aclService.getAclConfig(false);
-        }
-        UserInfo userInfo = (UserInfo) WebUtil.getValueFromSession(request, WebUtil.USER_INFO);
-        // if user info is null but reach here, must exclude secret key for safety.
-        return aclService.getAclConfig(userInfo == null || userInfo.getUser().getType() != User.ADMIN);
+    public ClusterAclVersionInfo getAclVersionConfig(HttpServletRequest request) {
+//        if (!configure.isLoginRequired()) {
+//            return aclService.getAclConfig(false);
+//        }
+//        UserInfo userInfo = (UserInfo) WebUtil.getValueFromSession(request, WebUtil.USER_INFO);
+//        // if user info is null but reach here, must exclude secret key for safety.
+//        return aclService.getAclConfig(userInfo == null || userInfo.getUser().getType() != User.ADMIN);
+
+        return aclService.getAclVersionConfig();
     }
 
     @PostMapping("/add.do")
